@@ -1,0 +1,47 @@
+buildscript {
+  String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+      url "https://repo.gradle.org/gradle/libs-releases-local"
+    }
+  }
+
+  dependencies {
+    classpath "io.thorntail:thorntail-gradle-plugin:$thorntailVersion"
+  }
+}
+
+String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+apply plugin: 'thorntail'
+apply plugin: 'war'
+
+thorntail {
+  properties {
+    swarm.http.host = 'localhost'
+    swarm.http.port = '8181'
+  }
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  maven {
+    url 'https://maven.repository.redhat.com/nexus/content/repositories/thirdparty-releases/'
+  }
+  maven {
+    url "https://repo.gradle.org/gradle/libs-releases-local"
+  }
+}
+
+dependencies {
+  // only import APIs, Thorntail fractions will be auto-detected
+  implementation "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
+}
+
+test {
+  systemProperty 'thorntailVersion', thorntailVersion
+}

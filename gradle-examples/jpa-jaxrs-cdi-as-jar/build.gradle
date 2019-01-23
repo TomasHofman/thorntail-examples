@@ -1,0 +1,59 @@
+buildscript {
+  String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+      url "https://repo.gradle.org/gradle/libs-releases-local"
+    }
+  }
+
+  dependencies {
+    classpath "io.thorntail:thorntail-gradle-plugin:$thorntailVersion"
+  }
+}
+
+String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+apply plugin: 'thorntail'
+apply plugin: 'java' // packaging of the module is JAR
+
+thorntail {
+  properties {
+    swarm.http.host = 'localhost'
+    swarm.http.port = '8181'
+  }
+  
+  // main class will create a JAXRSArchive deployment
+  mainClassName = 'org.wildfly.swarm.examples.jpajaxrscdi.Main'
+//  debugPort = 5005
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  maven {
+    url 'https://maven.repository.redhat.com/nexus/content/repositories/thirdparty-releases/'
+  }
+  maven {
+    url "https://repo.gradle.org/gradle/libs-releases-local"
+  }
+}
+
+dependencies {
+
+  // Include the Thorntail BOM for compilation.
+  implementation enforcedPlatform("io.thorntail:bom-all:$thorntailVersion")
+  implementation "io.thorntail:cdi"
+  implementation "io.thorntail:jaxrs"
+  implementation "io.thorntail:jpa"
+  implementation "commons-io:commons-io:2.4"
+  implementation "com.h2database:h2:1.4.187"
+
+  testImplementation "junit:junit:4.12"
+}
+
+test {
+  systemProperty 'thorntailVersion', thorntailVersion
+}

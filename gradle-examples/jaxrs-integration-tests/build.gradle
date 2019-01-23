@@ -1,0 +1,91 @@
+buildscript {
+  String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+      url "https://repo.gradle.org/gradle/libs-releases-local"
+    }
+  }
+
+  dependencies {
+    classpath "io.thorntail:thorntail-gradle-plugin:$thorntailVersion"
+  }
+}
+
+String thorntailVersion = System.getProperty('thorntailVersion') ?: VERSION_THORNTAIL
+
+apply plugin: 'thorntail'
+apply plugin: 'war'
+
+thorntail {
+  properties {
+    swarm.http.host = 'localhost'
+    swarm.http.port = '8181'
+  }
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  maven {
+    url 'https://maven.repository.redhat.com/nexus/content/repositories/thirdparty-releases/'
+  }
+  maven {
+    url "https://repo.gradle.org/gradle/libs-releases-local"
+  }
+}
+
+// define separate sourceSet for integration tests
+sourceSets {
+  integrationTest {
+    java {
+      compileClasspath += main.output + test.output
+      runtimeClasspath += main.output + test.output
+      srcDir file('src/it/java')
+    }
+    resources {
+      srcDir file('src/it/resources')
+    }
+  }
+}
+
+configurations {
+  integrationTestImplementation.extendsFrom testImplementation
+}
+
+dependencies {
+  // Include the Thorntail BOM for compilation.
+  implementation enforcedPlatform("io.thorntail:bom-all:$thorntailVersion")
+  implementation "io.thorntail:jaxrs"
+
+  // integration test dependencies
+  testImplementation "junit:junit:4.12"
+//  integrationTestImplementation "org.gradle:gradle-tooling-api:${gradle.gradleVersion}"
+//  integrationTestImplementation "io.thorntail:gradle-arquillian-adapter:$thorntailVersion"
+//  integrationTestImplementation "io.thorntail:undertow:$thorntailVersion"
+  integrationTestImplementation "io.thorntail.examples:examples-base:$thorntailVersion"
+}
+
+test {
+  systemProperty 'thorntailVersion', thorntailVersion
+}
+
+// integration test task
+task integrationTest(type: Test) {
+  // start the application before this task
+  dependsOn 'thorntail-start'
+  // stop the application after this task completes
+  finalizedBy 'thorntail-stop'
+  // test classes and classpath
+  testClassesDirs = sourceSets.integrationTest.output.classesDirs
+  classpath = sourceSets.integrationTest.runtimeClasspath
+  // run even if up-to-date
+  outputs.upToDateWhen { false }
+}
+
+// run integration test automatically
+check.dependsOn integrationTest
+// unit tests should run first
+integrationTest.mustRunAfter test
